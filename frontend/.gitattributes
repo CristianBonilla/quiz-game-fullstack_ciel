@@ -1,0 +1,22 @@
+# Set default behavior to automatically normalize line endings.
+* text=auto
+
+*.ts   text eol=lf
+*.js   text eol=lf
+*.html text eol=lf
+*.scss text eol=lf
+*.css  text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+
+package-lock.json linguist-generated=true merge=ours
+
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.woff binary
+*.woff2 binary
+*.ttf  binary
+*.otf  binary
