@@ -1,0 +1,52 @@
+services:
+  quiz-game-db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      MSSQL_PID: Developer
+    volumes:
+      - quiz-game-db-data:/var/opt/mssql
+      - ./scripts/database:/scripts/database:ro
+    networks:
+      - quiz-game-network
+    healthcheck:
+      # mssql-tools18 is the path used by the 2022-latest image (older images used mssql-tools).
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  quiz-game-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      quiz-game-db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+    ports:
+      - "5000:8080"
+    networks:
+      - quiz-game-network
+
+  quiz-game-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - quiz-game-backend
+    ports:
+      - "8080:80"
+    networks:
+      - quiz-game-network
+
+networks:
+  quiz-game-network:
+    driver: bridge
+
+volumes:
+  quiz-game-db-data:
