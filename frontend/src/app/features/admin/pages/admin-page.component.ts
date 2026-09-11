@@ -1,30 +1,27 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { AbstractControl, FormArray, NonNullableFormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
+import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CategoryStore } from '@features/admin/store/category.store';
 import { QuestionStore } from '@features/admin/store/question.store';
 import { Category } from '@domain/models/category';
 import { Question } from '@domain/models/question';
-import { DIFFICULTY_LEVEL_MAXIMUM, DIFFICULTY_LEVEL_MINIMUM, DifficultyLevel } from '@domain/enums/difficulty-level';
+import { DifficultyLevel } from '@domain/enums/difficulty-level';
 import { formatPrize } from '@shared/utils/format-prize';
+import { DIFFICULTY_LEVEL_OPTIONS } from '@shared/utils/difficulty-level-options';
+import { DifficultyLevelLabelPipe } from '@shared/pipes/difficulty-level-label.pipe';
 import { ButtonModule } from 'primeng/button';
 import { ConfirmationService } from 'primeng/api';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogModule } from 'primeng/dialog';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
-import { CheckboxModule } from 'primeng/checkbox';
+import { RadioButtonModule } from 'primeng/radiobutton';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
+import { TooltipModule } from 'primeng/tooltip';
 import { InputNumberModule } from 'primeng/inputnumber';
 
 type CategoryDialogMode = { kind: 'create' } | { kind: 'edit'; category: Category };
 type QuestionDialogMode = { kind: 'create' } | { kind: 'edit'; question: Question };
-
-function exactlyOneCorrectValidator(control: AbstractControl): ValidationErrors | null {
-  const answers = (control as FormArray).controls;
-  const correctCount = answers.filter((answer) => answer.value.isCorrect === true).length;
-  return correctCount === 1 ? null : { exactlyOneCorrect: true };
-}
 
 @Component({
   selector: 'app-admin-page',
@@ -35,10 +32,12 @@ function exactlyOneCorrectValidator(control: AbstractControl): ValidationErrors 
     DialogModule,
     InputTextModule,
     MessageModule,
-    CheckboxModule,
+    RadioButtonModule,
     SelectModule,
     TableModule,
-    InputNumberModule
+    TooltipModule,
+    InputNumberModule,
+    DifficultyLevelLabelPipe
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './admin-page.component.html',
@@ -52,10 +51,7 @@ export class AdminPageComponent {
   private readonly confirmation = inject(ConfirmationService);
   private readonly formBuilder = inject(NonNullableFormBuilder);
 
-  protected readonly difficultyLevels = Array.from(
-    { length: DIFFICULTY_LEVEL_MAXIMUM - DIFFICULTY_LEVEL_MINIMUM + 1 },
-    (_, index) => DIFFICULTY_LEVEL_MINIMUM + index
-  );
+  protected readonly difficultyLevelOptions = [...DIFFICULTY_LEVEL_OPTIONS];
 
   protected readonly categoryDialog = signal<CategoryDialogMode | null>(null);
   protected readonly questionDialog = signal<QuestionDialogMode | null>(null);
@@ -63,20 +59,19 @@ export class AdminPageComponent {
   protected readonly categoryForm = this.formBuilder.group({
     name: this.formBuilder.control('', [Validators.required, Validators.maxLength(100)]),
     description: this.formBuilder.control('', [Validators.required, Validators.maxLength(500)]),
-    difficultyLevel: this.formBuilder.control(DIFFICULTY_LEVEL_MINIMUM, [Validators.required]),
+    difficultyLevel: this.formBuilder.control<DifficultyLevel>(1, [Validators.required]),
     prizeAmount: this.formBuilder.control(0, [Validators.required, Validators.min(0)])
   });
 
   protected readonly questionForm = this.formBuilder.group({
     text: this.formBuilder.control('', [Validators.required, Validators.maxLength(500)]),
+    correctAnswerIndex: this.formBuilder.control<number | null>(null, [Validators.required]),
     answers: this.formBuilder.array(
       Array.from({ length: 4 }, () =>
         this.formBuilder.group({
-          text: this.formBuilder.control('', [Validators.required, Validators.maxLength(200)]),
-          isCorrect: this.formBuilder.control(false)
+          text: this.formBuilder.control('', [Validators.required, Validators.maxLength(200)])
         })
-      ),
-      { validators: exactlyOneCorrectValidator }
+      )
     )
   });
 
@@ -95,7 +90,7 @@ export class AdminPageComponent {
   }
 
   protected openCreateCategory(): void {
-    this.categoryForm.reset({ name: '', description: '', difficultyLevel: DIFFICULTY_LEVEL_MINIMUM, prizeAmount: 0 });
+    this.categoryForm.reset({ name: '', description: '', difficultyLevel: 1, prizeAmount: 0 });
     this.categoryDialog.set({ kind: 'create' });
   }
 
@@ -115,8 +110,7 @@ export class AdminPageComponent {
       return;
     }
 
-    const formValue = this.categoryForm.getRawValue();
-    const value = { ...formValue, difficultyLevel: formValue.difficultyLevel as DifficultyLevel };
+    const value = this.categoryForm.getRawValue();
     const mode = this.categoryDialog();
 
     if (mode?.kind === 'edit') {
@@ -151,9 +145,10 @@ export class AdminPageComponent {
   }
 
   protected openEditQuestion(question: Question): void {
-    this.questionForm.patchValue({ text: question.text });
+    const correctAnswerIndex = question.answers.findIndex((answer) => answer.isCorrect);
+    this.questionForm.reset({ text: question.text, correctAnswerIndex: correctAnswerIndex === -1 ? null : correctAnswerIndex });
     question.answers.forEach((answer, index) => {
-      this.answerControls()[index]?.patchValue({ text: answer.text, isCorrect: answer.isCorrect });
+      this.answerControls()[index]?.patchValue({ text: answer.text });
     });
     this.questionDialog.set({ kind: 'edit', question });
   }
@@ -165,7 +160,12 @@ export class AdminPageComponent {
     }
 
     const categoryId = this.categoryStore.selectedCategoryId();
-    const value = this.questionForm.getRawValue();
+    const formValue = this.questionForm.getRawValue();
+    const answers = formValue.answers.map((answer, index) => ({
+      text: answer.text,
+      isCorrect: index === formValue.correctAnswerIndex
+    }));
+    const value = { text: formValue.text, answers };
     const mode = this.questionDialog();
 
     if (mode?.kind === 'edit') {
@@ -190,7 +190,7 @@ export class AdminPageComponent {
   }
 
   private resetQuestionForm(): void {
-    this.questionForm.reset({ text: '' });
-    this.answerControls().forEach((control) => control.patchValue({ text: '', isCorrect: false }));
+    this.questionForm.reset({ text: '', correctAnswerIndex: null });
+    this.answerControls().forEach((control) => control.patchValue({ text: '' }));
   }
 }

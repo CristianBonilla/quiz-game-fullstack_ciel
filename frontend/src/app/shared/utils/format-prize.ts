@@ -1,6 +1,6 @@
-const PRIZE_FORMATTER = new Intl.NumberFormat('en-US', {
+const PRIZE_FORMATTER = new Intl.NumberFormat('es-CO', {
   style: 'currency',
-  currency: 'USD',
+  currency: 'COP',
   maximumFractionDigits: 0
 });
 

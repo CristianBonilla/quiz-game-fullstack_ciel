@@ -13,12 +13,14 @@ import Aura from '@primeuix/themes/aura';
 
 import { routes } from './app.routes';
 import { APP_CONFIG } from './core/config/app-config.token';
-import { GAME_GATEWAY, GAME_REPOSITORY } from './core/config/injection-tokens';
+import { CATEGORY_REPOSITORY, GAME_GATEWAY, GAME_REPOSITORY, QUESTION_REPOSITORY } from './core/config/injection-tokens';
 import { GlobalErrorHandler } from './core/error/global-error-handler';
 import { correlationIdInterceptor } from './core/http/correlation-id.interceptor';
 import { errorInterceptor } from './core/http/error.interceptor';
 import { loadingInterceptor } from './core/http/loading.interceptor';
+import { HttpCategoryRepository } from './data-access/api/http-category.repository';
 import { HttpGameRepository } from './data-access/api/http-game.repository';
+import { HttpQuestionRepository } from './data-access/api/http-question.repository';
 import { SignalrGameGateway } from './data-access/realtime/signalr-game.gateway';
 import { environment } from '../environments/environment';
 
@@ -47,6 +49,8 @@ export const appConfig: ApplicationConfig = {
     { provide: ErrorHandler, useClass: GlobalErrorHandler },
     { provide: GAME_REPOSITORY, useClass: HttpGameRepository },
     { provide: GAME_GATEWAY, useClass: SignalrGameGateway },
+    { provide: CATEGORY_REPOSITORY, useClass: HttpCategoryRepository },
+    { provide: QUESTION_REPOSITORY, useClass: HttpQuestionRepository },
     { provide: APP_CONFIG, useValue: environment }
   ]
 };

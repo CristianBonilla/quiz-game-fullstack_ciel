@@ -31,7 +31,7 @@ describe('PrizeDisplayComponent', () => {
     const value: HTMLElement = fixture.nativeElement.querySelector('[data-testid="prize-value"]');
 
     // Assert
-    expect(value.textContent?.trim()).toBe('$2,600');
+    expect(value.textContent?.trim()).toBe('$\u00a02.600');
   });
 
   it('should jump directly to the new amount when reduced motion is preferred', () => {
@@ -45,6 +45,6 @@ describe('PrizeDisplayComponent', () => {
     const value: HTMLElement = fixture.nativeElement.querySelector('[data-testid="prize-value"]');
 
     // Assert
-    expect(value.textContent?.trim()).toBe('$900');
+    expect(value.textContent?.trim()).toBe('$\u00a0900');
   });
 });

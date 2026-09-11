@@ -8,8 +8,10 @@ import { ButtonModule } from 'primeng/button';
   template: `
     <p-button
       label="Retirarme con mi acumulado"
-      severity="secondary"
-      [text]="true"
+      icon="pi pi-sign-out"
+      severity="warn"
+      [outlined]="true"
+      [rounded]="true"
       size="small"
       [disabled]="disabled()"
       (onClick)="withdraw.emit()"
