@@ -14,6 +14,7 @@
         [answers]="active.snapshot.answers"
         [disabled]="true"
         [feedback]="active.evaluation"
+        [animateStagger]="!store.isGameOver()"
       />
     </div>
   } @else {
@@ -27,6 +28,7 @@
         <app-question-card
           [questionText]="question.text"
           [answers]="question.answers"
+          [animateStagger]="!store.isGameOver()"
           (answerSelected)="onAnswerSelected($event)"
         />
       }

@@ -3,6 +3,8 @@ import { animate, query, stagger, style, transition, trigger } from '@angular/an
 // stagger() only accepts a literal/numeric interval; unlike animate(), it does not support the
 // {{param}} interpolation syntax, so only the per-item animation duration is parameterized.
 export const staggerAnswers = trigger('staggerAnswers', [
+  transition('* => disabled', []),
+  transition('disabled => *', []),
   transition('* => *', [
     query(
       '.answer-option',

@@ -142,7 +142,6 @@ export const GameStore = signalStore(
                     ...current,
                     status: event.status,
                     accumulatedPrize: event.finalPrize,
-                    currentQuestion: null,
                     deadlineUtc: null
                   },
             timeRemaining: 0
@@ -264,7 +263,6 @@ export const GameStore = signalStore(
             ...game,
             status: summary.status,
             accumulatedPrize: summary.finalPrize,
-            currentQuestion: null,
             deadlineUtc: null
           }
         });

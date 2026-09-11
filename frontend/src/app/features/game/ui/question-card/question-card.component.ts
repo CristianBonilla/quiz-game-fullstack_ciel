@@ -17,6 +17,7 @@ export class QuestionCardComponent {
   readonly answers = input.required<readonly PlayableAnswerView[]>();
   readonly disabled = input(false);
   readonly feedback = input<AnswerFeedback | null>(null);
+  readonly animateStagger = input(true);
 
   readonly answerSelected = output<string>();
 
@@ -39,8 +40,13 @@ export class QuestionCardComponent {
     return this.feedback()?.selectedAnswerId === answerId;
   }
 
-  protected readonly staggerKey = computed(() => ({
-    value: `${this.questionText()}-${this.answers().length}`,
-    params: { duration: this.motion.reducedMotion() ? 0 : 220 }
-  }));
+  protected readonly staggerKey = computed(() => {
+    if (!this.animateStagger()) {
+      return { value: 'disabled', params: { duration: 0 } };
+    }
+    return {
+      value: `${this.questionText()}-${this.answers().length}`,
+      params: { duration: this.motion.reducedMotion() ? 0 : 220 }
+    };
+  });
 }
