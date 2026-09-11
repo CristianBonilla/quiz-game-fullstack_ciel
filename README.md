@@ -1,131 +1,162 @@
-# QuizGame — Ejecución local y con Docker Compose
+# Quiz Game
 
-> Este documento cubre exclusivamente la configuración de infraestructura y los dos modos de
-> ejecución (Prompt 09). La descripción general del proyecto, arquitectura y features se añadirá
-> en la documentación final (Prompt 15).
+Juego de trivia con 5 niveles de dificultad y acumulación de premio, temporizador en tiempo real y retiro voluntario. Backend en **.NET 10** con `Clean Architecture + DDD táctico con Vertical Slices`, Frontend en **Angular 20** `zoneless` con PrimeNG, comunicación híbrida REST + **SignalR**, y persistencia en **SQL Server 2022** con el `Patrón Transactional Outbox`.
 
-## Los dos modos
+[![.NET](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/es-es/)
+[![Angular](https://img.shields.io/badge/Angular-20-DD0031?logo=angular&logoColor=white)](https://angular.dev/)
+[![SQL Server](https://img.shields.io/badge/SQL_Server-2022-CC2927?logo=microsoftsqlserver&logoColor=white)](https://www.microsoft.com/es-co/sql-server/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-| Modo | Base de datos | Backend | Frontend |
-| --- | --- | --- | --- |
-| **Local** | `(localdb)\MSSQLLocalDB` | `dotnet run --launch-profile Local` | `ng serve` / `npm start` |
-| **Docker Compose** | SQL Server 2022 en contenedor (`quiz-game-db`) | contenedor `quiz-game-backend` | contenedor `quiz-game-frontend` |
+## Descripción del reto
 
-Ambos modos funcionan sin tocar código: solo cambia el perfil de configuración
-(`ASPNETCORE_ENVIRONMENT=Local|Docker`).
+Es un juego de preguntas y respuestas con opción múltiple (4 opciones, 1 correcta)
+organizado en niveles de dificultad. El jugador comienza en el nivel más fácil; cada acierto acumula premio y avanza de nivel; el primer fallo termina la partida perdiendo lo acumulado; el jugador puede retirarse voluntariamente en cualquier momento entre rondas conservando el premio ganado hasta ese punto; y cada pregunta tiene un límite de tiempo, transcurrido el cual la partida finaliza forzosamente.
 
-## Perfiles de configuración
+| Funcionalidad | Estado | Dónde |
+| --- | --- | --- |
+| Configurar el juego | ✅ | `GameOptions` (`appsettings.json`), `ConfigureGameQuery`, `GET /api/v1/games/settings` |
+| Iniciar el juego | ✅ | `StartGameCommand`, `Game.Create`, `POST /api/v1/games` |
+| Responder a la pregunta | ✅ | `AnswerQuestionCommand`, `GameHub.SubmitAnswerAsync` |
+| Aumentar de nivel | ✅ | `Game.Answer`, `RoundAdvancedDomainEvent` |
+| Acumular premio | ✅ | `Game.Answer`, `PrizeAccumulatedDomainEvent`, `TieredPrizeStrategy` |
+| Finalizar voluntario | ✅ | `WithdrawGameCommand`, `GameHub.WithdrawAsync` |
+| Ganador de ronda final | ✅ | `Game.Answer`, `GameWonDomainEvent` |
+| Fin del juego forzado | ✅ | `ForceEndGameCommand`, `GameTimeoutService` |
+| Gestión de categorías y preguntas | ✅ | `CategoryEndpoints`, `QuestionEndpoints`, panel `/admin` |
+
+## Stack tecnológico
+
+### Backend
+
+| Tecnología | Versión | Propósito |
+| --- | --- | --- |
+| .NET / ASP.NET Core | 10.0 | Runtime y Minimal API |
+| Entity Framework Core | 10.0.0 | ORM, migraciones, `IDbContextFactory` |
+| SignalR | 10.0.0 | Canal en tiempo real (`GameHub`) |
+| FluentValidation | 11.10.0 | Validación de comandos en el pipeline |
+| Microsoft.Extensions.Resilience (Polly) | 9.10.0 | Reintentos y Circuit Breaker del Outbox |
+| Scalar.AspNetCore | 1.2.64 | UI de documentación sobre OpenAPI nativo |
+| xUnit + Shouldly + NSubstitute | 2.8.1 / 4.2.1 / 5.1.0 | Pruebas unitarias |
+| Testcontainers.MsSql | 4.15.0 | SQL Server real en contenedor para pruebas de integración |
+| SQL Server 2022 | `mcr.microsoft.com/mssql/server:2022-latest` | Persistencia |
+
+### Frontend
+
+| Tecnología | Versión | Propósito |
+| --- | --- | --- |
+| Angular | 20.3.30 | Framework SPA, `provideZonelessChangeDetection` |
+| @ngrx/signals | 20.1.0 | `signalStore` para estado de features (`GameStore`, `CategoryStore`) |
+| PrimeNG + @primeuix/themes | 20.2.0 / ^1.1.1 | Componentes UI, preset Aura |
+| @microsoft/signalr | ^8.0.7 | Cliente WebSocket hacia `GameHub` |
+| RxJS | ~7.8.0 | Streams de eventos del gateway en tiempo real |
+| Vitest + @vitest/coverage-v8 | ^3.2.7 | Pruebas unitarias y cobertura |
+| ESLint + angular-eslint | ^9.19.0 / ^20.7.0 | Linting |
+| Node.js | ≥ 22.0.0 | Runtime de build (`engines` en `package.json`) |
+
+## Arquitectura
+
+### ¿Por qué Clean Architecture + DDD táctico con Vertical Slices?
+
+Las reglas del juego imponen restricciones severas: cuatro opciones con una única respuesta correcta por pregunta, categorías habilitadas únicamente tras alcanzar cinco preguntas activas, estados irreversibles de partida y penalización total del acumulado al fallar. Para evitar que estas reglas se omitan en casos límite, las modelamos dentro de un agregado rico de DDD en lugar de utilizar servicios anémicos o validaciones dispersas en controladores. Gracias a Clean Architecture, el dominio permanece agnóstico a tecnologías como EF Core o SignalR. Además, la adopción de Vertical Slices (`Features/...`) permite acoplar código por caso de uso en lugar de dispersarlo en capas horizontales rígidas (`Controllers/`, `Services/`, `Repositories/`), mejorando drásticamente la mantenibilidad.
+
+### Regla de dependencia
 
 ```text
-backend/src/QuizGame.Api/
-├── appsettings.json            → configuración común (Resilience, Logging), sin cadena de conexión
-├── appsettings.Local.json      → modo local (LocalDB, Integrated Security)
-└── appsettings.Docker.json     → modo docker-compose (SQL Server en contenedor, marcador de contraseña)
+┌─────────────────────────────────────────────────────────────┐
+│                       QuizGame.Api                          │
+│          (Minimal APIs, GameHub SignalR, Program.cs)        │
+└───────────────┬─────────────────────────────┬───────────────┘
+                │ depende de                  │ depende de
+                ▼                             ▼
+┌──────────────────────────────┐┌─────────────────────────────┐
+│   QuizGame.Infrastructure    ││    QuizGame.Application     │
+│ (EF Core, Outbox, Polly, DB) ││ (Vertical Slices, Pipeline) │
+└───────────────┬──────────────┘└──────────────┬──────────────┘
+                │                              │
+                │ implementa / depende de      │ depende de
+                └───────────────┬──────────────┘
+                                ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      QuizGame.Domain                        │
+│          (Agregados, Value Objects, Reglas puras)           │
+│                                                             │
+│          ───► NO DEPENDE DE NINGUNA OTRA CAPA ◄───          │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**Decisión confirmada:** LocalDB se autentica con `Integrated Security=true` (usuario de Windows).
-No admite `User Id`/`Password`, así que esos dos parámetros se omiten deliberadamente en el perfil
-Local. `Encrypt=False` es correcto ahí porque la conexión es local por named pipes. El perfil Local
-no necesita ninguna variable de entorno de contraseña: no hay credencial que proteger.
+`QuizGame.Domain` no referencia ningún paquete de Entity Framework, ASP.NET Core ni SignalR. `QuizGame.Application` solo conoce abstracciones (`IGameRepository`, `IUnitOfWork`, `IGameNotifier`); sus implementaciones concretas viven en `Infrastructure` y `Api`.
 
-### Parámetros de `DefaultConnection` en el perfil Docker
+## Prerrequisitos
 
-| Parámetro | Valor Docker | Razón |
+### Local
+
+| Herramienta | Versión mínima | Verificación |
 | --- | --- | --- |
-| `Server` | `quiz-game-db,1433` | nombre del servicio en la red de Compose; Docker resuelve el DNS |
-| `Database` | `QuizGameDb` | base creada por las migraciones |
-| `User Id` | `sa` | usuario administrador de la imagen oficial |
-| `Password` | `${MSSQL_SA_PASSWORD}` | marcador; el valor real llega por variable de entorno |
-| `TrustServerCertificate` | `True` | el contenedor usa certificado autofirmado |
-| `Encrypt` | `True` | cifra el tráfico aunque el certificado no sea de una CA |
-| `MultipleActiveResultSets` | `True` | permite múltiples lectores activos sobre una conexión |
-| `Connect Timeout` | `30` | margen para el arranque de SQL Server en contenedor |
+| .NET SDK | 10.0 | `dotnet --version` |
+| Node.js | 22.x | `node --version` |
+| SQL Server LocalDB | incluido con Visual Studio o [SQL Server Express LocalDB](https://learn.microsoft.com/sql/database-engine/configure-windows/sql-server-express-localdb) | `sqllocaldb info` |
+| dotnet-ef | 10.x (herramienta global) | `dotnet ef --version` |
+| Docker Desktop | Versión reciente | `docker --version` |
 
-## Resolución de la contraseña (`ConnectionStringResolver`)
+### Docker Compose
 
-La contraseña vive únicamente en la variable de entorno `MSSQL_SA_PASSWORD`. `appsettings.Docker.json`
-contiene la cadena completa **con el marcador** `${MSSQL_SA_PASSWORD}`, nunca con el secreto real.
-`ConnectionStringResolver.Resolve(IConfiguration)` se ejecuta en `Program.cs` **antes** de registrar
-el `DbContextFactory`:
+| Herramienta | Versión mínima | Verificación |
+| --- | --- | --- |
+| Docker Desktop con Compose V2 | Versión reciente | `docker compose version` |
 
-- Si la cadena no contiene el marcador (perfil Local), la devuelve intacta: un solo camino de código
-  para ambos modos.
-- Si lo contiene y la variable no está definida, lanza `InvalidOperationException` de inmediato —
-  nunca un timeout de conexión difuso a los 30 segundos (verificado: ver sección de pruebas).
-- Aplica la contraseña con `SqlConnectionStringBuilder`, nunca por concatenación de strings, para no
-  corromper la cadena si el secreto contiene `;`, `'` o `"`.
-- Nunca se registra la cadena resuelta en logs ni en excepciones.
-
-**Nota de ubicación:** el resolvedor vive en `QuizGame.Infrastructure.Persistence`, no en
-`QuizGame.Api/Extensions` como sugiere el enunciado. La factoría de diseño de EF Core
-(`QuizGameDbContextFactory`, usada por `dotnet ef`) necesita reutilizar exactamente la misma lógica
-(Prompt 05), e `Infrastructure` no puede depender de `Api`. Se prefirió una sola implementación en la
-capa más baja que ambos consumidores alcanzan, en vez de duplicar código para calzar con la ruta
-sugerida literalmente.
-
-### Alternativa admitida (no usada como principal)
-
-ASP.NET Core mapea `ConnectionStrings__DefaultConnection` como variable de entorno y sobrescribe el
-valor del archivo. Es válido, pero deja la cadena completa —incluido el secreto— dentro del
-`docker-compose.yml`, que sí se versiona. El marcador con resolvedor mantiene el secreto en un único
-lugar (`.env`, no versionado) y la cadena documentada en `appsettings.Docker.json`. Es una decisión de
-seguridad, no de estilo.
-
-## Flujo del secreto
-
-```mermaid
-flowchart LR
-    ENV[".env<br/>MSSQL_SA_PASSWORD"] --> COMPOSE["docker-compose.yml"]
-    COMPOSE --> DB["quiz-game-db<br/>(crea el usuario sa)"]
-    COMPOSE --> BACKEND["quiz-game-backend<br/>(alimenta ConnectionStringResolver)"]
-    BACKEND --> APPSETTINGS["appsettings.Docker.json<br/>DefaultConnection con marcador"]
-    APPSETTINGS --> RESOLVED["Cadena de conexión resuelta<br/>(solo en memoria, nunca logueada)"]
-```
-
-Una sola variable, dos consumidores, cero duplicación. En un entorno real esto iría en Azure Key
-Vault, AWS Secrets Manager o Docker Secrets; `.env` es aceptable solo para desarrollo local.
-
-## Comandos
-
-### Modo Local
+## Ejecución — Local
 
 ```powershell
+git clone <repo-url> && cd quiz-game-fullstack_ciel
+
 # Base de datos (LocalDB)
 cd backend
+
 dotnet tool install --global dotnet-ef
 dotnet ef database update --project src/QuizGame.Infrastructure --startup-project src/QuizGame.Api
 
-# API
+# API (deja esta terminal abierta)
 dotnet run --project src/QuizGame.Api --launch-profile Local
 
-# Frontend (otra terminal)
-cd frontend
+# Frontend (en otra terminal)
+cd ../frontend
 npm ci
 npm start
 ```
 
-Alternativa sin EF Tools: ejecutar los scripts de `/scripts/database/` en orden con `sqlcmd`.
+**URLs**:
 
-### Modo Docker Compose
+| Servicio | URL |
+| --- | --- |
+| Frontend (Angular dev server) | <http://localhost:4200> |
+| API | <http://localhost:5121> |
+| Documentación OpenAPI (Scalar) | <http://localhost:5121/scalar/v1> |
+| Health checks | <http://localhost:5121/health/live>, <http://localhost:5121/health/ready> |
+
+Alternativa sin `dotnet-ef`: ejecutar los scripts de [`scripts/database/`](scripts/database/) en orden ascendente con `sqlcmd` contra `(localdb)\MSSQLLocalDB`.
+
+## Ejecución — Docker Compose
 
 ```powershell
-# 1. Preparar el secreto (una sola vez)
-cp .env.example .env      # y ajusta MSSQL_SA_PASSWORD si quieres otro valor
+# Preparar el secreto (una sola vez)
+cp .env.example .env      # Ajustar valor MSSQL_SA_PASSWORD
 
-# 2. Construir y levantar
+# Construir y levantar
 docker compose up --build -d
 
 # Ver estado y logs
 docker compose ps
 docker compose logs -f quiz-game-backend
+```
 
-# Verificar que la variable llega al contenedor (sin imprimir el valor)
-docker compose exec quiz-game-backend printenv | Select-String "MSSQL_SA_PASSWORD=" | ForEach-Object { "MSSQL_SA_PASSWORD is set" }
+Comandos de operación:
 
-# Detener conservando datos
+```powershell
+# Detener
 docker compose stop
 
-# Detener y eliminar contenedores (conserva el volumen)
+# Detener y eliminar contenedores
 docker compose down
 
 # Reset total, incluidos los datos
@@ -135,21 +166,171 @@ docker compose down -v
 docker compose up --build -d quiz-game-backend
 ```
 
-URLs resultantes: frontend `http://localhost:8080`, API `http://localhost:5000`, documentación
-`http://localhost:5000/scalar/v1`.
+| Servicio | Imagen | Puerto host | Puerto contenedor |
+| --- | --- | --- | --- |
+| `quiz-game-frontend` | build local (`frontend/Dockerfile`, Nginx) | `8080` | `80` |
+| `quiz-game-backend` | build local (`backend/Dockerfile`, ASP.NET Core) | `5000` | `8080` |
+| `quiz-game-db` | `mcr.microsoft.com/mssql/server:2022-latest` | `1433` | `1433` |
 
-## Validado en esta sesión
+**URLs**:
 
-- `docker compose build quiz-game-backend` — build multi-stage correcto.
-- `docker compose up -d quiz-game-db quiz-game-backend` — `quiz-game-db` pasa su healthcheck
-  (`sqlcmd`) antes de que `quiz-game-backend` arranque; migraciones aplicadas automáticamente al
-  iniciar (perfil `Docker`); `GET /health/ready` y `GET /api/v1/categories` responden `200 OK` con
-  las 3 categorías sembradas, a través del puerto publicado `5000`.
-- Arrancar el contenedor del backend en perfil `Docker` **sin** `MSSQL_SA_PASSWORD` falla de
-  inmediato con `InvalidOperationException: Environment variable 'MSSQL_SA_PASSWORD' is required by
-  the current profile.` — no hay timeout de conexión difuso.
-- Modo Local: `dotnet ef database update` + `dotnet run --launch-profile Local` contra
-  `(localdb)\MSSQLLocalDB`, base `QuizGameDb`; `GET /health/live` y `GET /api/v1/categories`
-  responden `200 OK`.
-- El frontend (`quiz-game-frontend`) aún no se puede construir: el proyecto Angular se crea en el
-  Prompt 10. El `Dockerfile`/`nginx.conf` están listos para cuando exista `frontend/package.json`.
+Frontend <http://localhost:8080>, API <http://localhost:5000>, Documentación <http://localhost:5000/scalar/v1>. `quiz-game-backend` espera a que `quiz-game-db` pase su healthcheck (`condition: service_healthy`) y aplica las migraciones automáticamente al iniciar (solo en el perfil `Docker`, ver `Program.cs`).
+
+## Frontend Environments
+
+En el archivo `environment.ts` y `proxy.conf.json` tener en cuenta los puertos de **apiBaseUrl** (`/api`) y **hubUrl** (`/hubs`) para hacer el cambio, según el entorno en ejecución.
+
+## Configuración
+
+```text
+backend/src/QuizGame.Api/
+├── appsettings.json            → configuración común (Resilience, Logging), sin cadena de conexión
+├── appsettings.Local.json      → modo local (LocalDB, Integrated Security)
+└── appsettings.Docker.json     → modo docker-compose (SQL Server en contenedor, marcador de contraseña)
+```
+
+### ¿Por qué el perfil Local no lleva usuario ni contraseña?
+
+LocalDB se autentica con el usuario de Windows del proceso: **no admite `User Id`/`Password`**. Por eso el perfil Local usa `Integrated Security=true` y omite esos dos parámetros — es una desviación deliberada, no un olvido. Consecuencia práctica: **el modo Local no necesita ninguna variable de entorno de contraseña**.
+
+### Gestión del secreto en modo Docker
+
+La contraseña **no está en ningún archivo versionado**. La cadena `DefaultConnection` sí vive
+completa en `appsettings.Docker.json`, pero con un marcador en lugar del secreto:
+
+```json
+"DefaultConnection": "Server=quiz-game-db,1433;Database=QuizGameDb;User Id=sa;Password=${MSSQL_SA_PASSWORD};..."
+```
+
+Una sola variable (`MSSQL_SA_PASSWORD`), definida en `.env`, consumida por los dos servicios.
+Cambiarla requiere editar un único archivo.
+
+## Base de datos
+
+Los scripts en [`scripts/database/`](scripts/database/) son **generados** a partir de las migraciones de EF Core (`backend/src/QuizGame.Infrastructure/Persistence/Migrations/`) **no se editan a mano**. El número mayor de versión avanza con cada migración nueva (`1.0 → 2.0 → … → 5.0`); un número menor (`x.1`) quedaría reservado para una corrección manual aplicada sobre un script ya entregado.
+
+| Script | Migración que lo genera | Contenido |
+| --- | --- | --- |
+| `1.0.quiz-game-schema-script.sql` | `InitialCreate` | Tablas `Categories`, `Questions`, `Answers`, `Games`, `Rounds` |
+| `2.0.quiz-game-seed-data-script.sql` | `SeedInitialData` | `INSERT` de las 3 categorías y 18 preguntas sembradas |
+| `3.0.quiz-game-stored-procedures-script.sql` | `AddStoredProcedures` | `sp_GetRandomQuestionByCategory_v1`, `sp_GetGameSummary_v1` |
+| `4.0.quiz-game-idempotency-outbox-script.sql` | `AddIdempotencyAndOutbox` | Tablas `IdempotencyRecords`, `OutboxMessages` |
+| `5.0.quiz-game-resilience-columns-script.sql` | `AddResilienceColumns` | Columnas de soporte para reintentos/circuito del Outbox |
+
+Cada script es idempotente (`--idempotent`): ejecutarlo más de una vez sobre la misma base es seguro.
+
+### Cómo regenerarlos
+
+No existe un script auxiliar versionado para esto (se ejecuta el comando de EF Core directamente,
+sin envoltorio, para no atarlo a PowerShell ni Bash):
+
+```powershell
+cd backend
+
+dotnet ef migrations script 0 InitialCreate --project src/QuizGame.Infrastructure --startup-project src/QuizGame.Api --idempotent --output ../scripts/database/1.0.quiz-game-schema-script.sql
+
+dotnet ef migrations script InitialCreate SeedInitialData --project src/QuizGame.Infrastructure --startup-project src/QuizGame.Api --idempotent --output ../scripts/database/2.0.quiz-game-seed-data-script.sql
+
+dotnet ef migrations script SeedInitialData AddStoredProcedures --project src/QuizGame.Infrastructure --startup-project src/QuizGame.Api --idempotent --output ../scripts/database/3.0.quiz-game-stored-procedures-script.sql
+
+dotnet ef migrations script AddStoredProcedures AddIdempotencyAndOutbox --project src/QuizGame.Infrastructure --startup-project src/QuizGame.Api --idempotent --output ../scripts/database/4.0.quiz-game-idempotency-outbox-script.sql
+
+dotnet ef migrations script AddIdempotencyAndOutbox AddResilienceColumns --project src/QuizGame.Infrastructure --startup-project src/QuizGame.Api --idempotent --output ../scripts/database/5.0.quiz-game-resilience-columns-script.sql
+```
+
+### Contenido del seed
+
+3 categorías (`Software Development`, `Software Architecture`, `Data & AI Engineering`), cada una con dificultad 1 a 3, un premio base, y 6 preguntas activas (18 en total) con 4 respuestas cada una.
+
+## Pruebas
+
+### Pruebas Backend
+
+```powershell
+cd backend
+dotnet test                                           # las 4 suites (unitarias + integración)
+dotnet test tests/QuizGame.Domain.UnitTests           # solo dominio
+dotnet test tests/QuizGame.Application.UnitTests      # solo aplicación
+dotnet test tests/QuizGame.Api.IntegrationTests       # requiere Docker (Testcontainers.MsSql)
+dotnet test --collect:"XPlat Code Coverage"           # con cobertura (coverlet)
+```
+
+### Pruebas Frontend
+
+```powershell
+cd frontend
+npm test                       # Vitest en watch
+npm test -- --watch=false      # una sola corrida (CI)
+npm run test:coverage          # con cobertura (@vitest/coverage-v8)
+npm run lint                   # ESLint + angular-eslint
+```
+
+### Qué se prueba
+
+| Capa | Qué cubre |
+| --- | --- |
+| `QuizGame.Domain.UnitTests` | Invariantes de los agregados (`Game`, `Question`, `Category`), Value Objects, `GameStateMachine`, `GameRules`, igualdad de entidades |
+| `QuizGame.Application.UnitTests` | Handlers de comandos/consultas, comportamientos del pipeline, estrategias de premio y selección de preguntas |
+| `QuizGame.Api.IntegrationTests` | Endpoints REST de punta a punta contra un SQL Server real (`Testcontainers.MsSql`) vía `WebApplicationFactory` |
+| Frontend (Vitest) | Guards de rutas, mappers DTO↔dominio, `GameStore` (`@ngrx/signals`), componentes de presentación (`CountdownBar`, `PrizeDisplay`, `QuestionCard`), deduplicador de eventos SignalR |
+
+## API y tiempo real
+
+### Endpoints REST (`/api/v1`)
+
+| Método | Ruta | Descripción |
+| --- | --- | --- |
+| `GET` | `/games/settings` | Configuración vigente del juego (rondas, tiempo por pregunta, premios) |
+| `POST` | `/games` | Inicia una partida (`{ playerName }`) |
+| `GET` | `/games/{id}` | Estado actual de una partida |
+| `GET` | `/games/{id}/summary` | Resumen final (premio, estado, jugador) |
+| `GET` | `/categories?onlyActive=` | Lista categorías |
+| `GET` | `/categories/{id}` | Detalle de una categoría |
+| `POST` | `/categories` | Crea una categoría |
+| `PUT` | `/categories/{id}` | Actualiza una categoría |
+| `DELETE` | `/categories/{id}` | Desactiva una categoría |
+| `GET` | `/categories/{categoryId}/questions` | Lista preguntas de una categoría |
+| `GET` | `/questions/{id}` | Detalle de una pregunta |
+| `POST` | `/questions` | Crea una pregunta (con sus 4 respuestas) |
+| `PUT` | `/questions/{id}` | Actualiza una pregunta |
+| `DELETE` | `/questions/{id}` | Desactiva una pregunta |
+| `GET` | `/health/live` / `/health/ready` | Liveness / readiness (base de datos + circuito del Outbox) |
+
+Todas las rutas comparten la política de *rate limiting* `api` (100 solicitudes/minuto por ventana fija, `429 Too Many Requests` al superarla).
+
+### Contrato de eventos SignalR (`/hubs/game`)
+
+| Evento | Payload | Cuándo se emite |
+| --- | --- | --- |
+| `GameStartedAsync` | `{ gameId, playerName, totalRounds, startedOnUtc }` | Al confirmarse `StartGameCommand` |
+| `RoundStartedAsync` | `{ gameId, roundNumber, questionId, questionText, answers[], prizeAtStake, deadlineUtc }` | Al asignarse una nueva pregunta |
+| `AnswerEvaluatedAsync` | `{ gameId, roundNumber, isCorrect, correctAnswerId, accumulatedPrize, status }` | Tras evaluar la respuesta del jugador |
+| `RoundAdvancedAsync` | `{ gameId, previousRoundNumber, currentRoundNumber, accumulatedPrize }` | Al avanzar de ronda tras un acierto no final |
+| `PrizeAccumulatedAsync` | `{ gameId, roundNumber, prizeWon, accumulatedPrize }` | Junto con cada acierto, antes o después de avanzar ronda |
+| `GameEndedAsync` | `{ gameId, playerName, status, finalPrize, endedOnUtc }` | Victoria, derrota, retiro o fin forzado |
+| `TimeRemainingAsync` | `{ gameId, roundNumber, secondsRemaining }` | Cada segundo, mientras haya una ronda abierta (`GameTimeoutService`) |
+
+Métodos invocables por el cliente: `JoinGameAsync(gameId)`, `SubmitAnswerAsync(request)`,
+`WithdrawAsync(request)`, `LeaveGameAsync(gameId)`.
+
+### Documentación interactiva
+
+OpenAPI nativo de .NET 10 servido con **Scalar**: `http://localhost:5121/scalar/v1` (Local) o `http://localhost:5000/scalar/v1` (Docker).
+
+## Estructura del repositorio
+
+```text
+quiz-game-fullstack_ciel/
+├── backend/                    → API .NET 10, Clean Architecture
+│   ├── src/
+│   └── tests/
+├── frontend/                   → SPA Angular 20 zoneless
+│   ├── src/
+│   └── public/
+├── docs/                       → diagramas de arquitectura
+│   └── diagrams/               → archivos PNG de cada diagrama
+├── scripts/database/           → scripts .sql generados desde las migraciones EF Core
+├── docker-compose.yml          → orquestación de los 3 contenedores (db, backend, frontend)
+├── .env.example                → plantilla de variables de entorno para Docker Compose
+└── README.md
+```
