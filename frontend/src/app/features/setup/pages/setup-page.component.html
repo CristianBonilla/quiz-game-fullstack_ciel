@@ -1,17 +1,27 @@
 <p-card header="Comenzar partida">
-  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="setup-form">
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="setup-form" autocomplete="off" spellcheck="false">
     <label for="playerName">Nombre del jugador</label>
-    <input id="playerName" type="text" pInputText formControlName="playerName" autocomplete="off" />
+    <input id="playerName" type="text" pInputText formControlName="playerName" autocomplete="off" spellcheck="false" />
 
-    @if (form.controls.playerName.invalid && form.controls.playerName.touched) {
-      <p-message severity="error" text="Ingresa un nombre entre 2 y 50 caracteres." />
+    @if (form.controls.playerName.invalid && (form.controls.playerName.touched || form.controls.playerName.dirty)) {
+      <p-message severity="error" [text]="playerNameErrorMessage" />
     }
 
     @if (store.error(); as error) {
       <p-message severity="error" [text]="error.message" />
     }
 
-    <p-button type="submit" label="Comenzar" [loading]="store.status() === 'loading'" />
+    <div class="setup-form__actions">
+      <p-button type="submit" label="Comenzar" [loading]="store.status() === 'loading' || isStarting()" />
+      <p-button
+        type="button"
+        label="Administración"
+        icon="pi pi-cog"
+        severity="secondary"
+        [outlined]="true"
+        routerLink="/admin"
+      />
+    </div>
   </form>
 
   <section class="setup-preview">
