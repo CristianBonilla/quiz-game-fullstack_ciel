@@ -1,0 +1,113 @@
+<section class="admin-page">
+  <header class="admin-page__header">
+    <h1>Categorías</h1>
+    <p-button label="Nueva categoría" icon="pi pi-plus" (onClick)="openCreateCategory()" />
+  </header>
+
+  @if (categoryStore.error(); as error) {
+    <p-message severity="error" [text]="error.message" />
+  }
+
+  <p-table [value]="categoryRows()" [paginator]="true" [rows]="5" dataKey="id" [globalFilterFields]="['name']">
+    <ng-template #header>
+      <tr>
+        <th pSortableColumn="name">Nombre <p-sortIcon field="name" /></th>
+        <th pSortableColumn="difficultyLevel">Dificultad <p-sortIcon field="difficultyLevel" /></th>
+        <th pSortableColumn="prizeAmount">Premio <p-sortIcon field="prizeAmount" /></th>
+        <th pSortableColumn="questionCount">Preguntas <p-sortIcon field="questionCount" /></th>
+        <th>Estado</th>
+        <th>Acciones</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-category>
+      <tr [class.selected]="category.id === categoryStore.selectedCategoryId()">
+        <td>
+          <button type="button" class="link-button" (click)="onSelectCategory(category)">{{ category.name }}</button>
+        </td>
+        <td>{{ category.difficultyLevel }}</td>
+        <td>{{ formatPrize(category.prizeAmount) }}</td>
+        <td>{{ category.questionCount }}</td>
+        <td>{{ category.isActive ? 'Activa' : 'Inactiva' }}</td>
+        <td class="admin-page__actions">
+          <p-button icon="pi pi-pencil" [text]="true" (onClick)="openEditCategory(category)" />
+          <p-button icon="pi pi-trash" severity="danger" [text]="true" [disabled]="!category.isActive" (onClick)="confirmDeactivateCategory(category)" />
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+
+  @if (categoryStore.selectedCategory(); as selected) {
+    <header class="admin-page__header">
+      <h2>Preguntas de {{ selected.name }}</h2>
+      <p-button label="Nueva pregunta" icon="pi pi-plus" (onClick)="openCreateQuestion()" />
+    </header>
+
+    <p-table [value]="questionRows()" [paginator]="true" [rows]="5" dataKey="id">
+      <ng-template #header>
+        <tr>
+          <th>Pregunta</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-question>
+        <tr>
+          <td>{{ question.text }}</td>
+          <td>{{ question.isActive ? 'Activa' : 'Inactiva' }}</td>
+          <td class="admin-page__actions">
+            <p-button icon="pi pi-pencil" [text]="true" (onClick)="openEditQuestion(question)" />
+            <p-button icon="pi pi-trash" severity="danger" [text]="true" [disabled]="!question.isActive" (onClick)="confirmDeactivateQuestion(question)" />
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  }
+</section>
+
+<p-dialog header="Categoría" [visible]="categoryDialog() !== null" (visibleChange)="!$event && categoryDialog.set(null)" [modal]="true">
+  <form [formGroup]="categoryForm" (ngSubmit)="onSubmitCategory()" class="dialog-form">
+    <label for="categoryName">Nombre</label>
+    <input id="categoryName" type="text" pInputText formControlName="name" />
+
+    <label for="categoryDescription">Descripción</label>
+    <input id="categoryDescription" type="text" pInputText formControlName="description" />
+
+    <label for="categoryDifficulty">Dificultad</label>
+    <p-select id="categoryDifficulty" [options]="difficultyLevels" formControlName="difficultyLevel" />
+
+    <label for="categoryPrize">Premio</label>
+    <p-inputNumber id="categoryPrize" formControlName="prizeAmount" mode="decimal" [min]="0" />
+
+    @if (categoryForm.invalid && categoryForm.touched) {
+      <p-message severity="error" text="Completa todos los campos requeridos." />
+    }
+
+    <p-button type="submit" label="Guardar" [loading]="categoryStore.status() === 'loading'" />
+  </form>
+</p-dialog>
+
+<p-dialog header="Pregunta" [visible]="questionDialog() !== null" (visibleChange)="!$event && questionDialog.set(null)" [modal]="true">
+  <form [formGroup]="questionForm" (ngSubmit)="onSubmitQuestion()" class="dialog-form">
+    <label for="questionText">Enunciado</label>
+    <input id="questionText" type="text" pInputText formControlName="text" />
+
+    <fieldset class="dialog-form__answers">
+      <legend>Respuestas (marca exactamente una como correcta)</legend>
+      @for (answer of answerControls(); track $index) {
+        <div class="dialog-form__answer" [formGroup]="answer">
+          <input type="text" pInputText formControlName="text" [placeholder]="'Respuesta ' + ($index + 1)" />
+          <label>
+            <p-checkbox formControlName="isCorrect" [binary]="true" />
+            Correcta
+          </label>
+        </div>
+      }
+
+      @if (questionForm.controls.answers.errors?.['exactlyOneCorrect'] && questionForm.touched) {
+        <p-message severity="error" text="Marca exactamente una respuesta como correcta." />
+      }
+    </fieldset>
+
+    <p-button type="submit" label="Guardar" [loading]="questionStore.status() === 'loading'" />
+  </form>
+</p-dialog>
