@@ -1,0 +1,33 @@
+<p-card header="Comenzar partida">
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="setup-form">
+    <label for="playerName">Nombre del jugador</label>
+    <input id="playerName" type="text" pInputText formControlName="playerName" autocomplete="off" />
+
+    @if (form.controls.playerName.invalid && form.controls.playerName.touched) {
+      <p-message severity="error" text="Ingresa un nombre entre 2 y 50 caracteres." />
+    }
+
+    @if (store.error(); as error) {
+      <p-message severity="error" [text]="error.message" />
+    }
+
+    <p-button type="submit" label="Comenzar" [loading]="store.status() === 'loading'" />
+  </form>
+
+  <section class="setup-preview">
+    <h2>Rondas configuradas</h2>
+
+    @if (store.status() === 'loading' && store.settings() === null) {
+      <p-skeleton height="8rem" />
+    } @else if (store.settings(); as settings) {
+      <ul class="setup-preview__list">
+        @for (round of settings.rounds; track round.roundNumber) {
+          <li>
+            <span>Ronda {{ round.roundNumber }} · {{ round.categoryName }}</span>
+            <span>{{ formatPrize(round.prizeAmount) }}</span>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+</p-card>
