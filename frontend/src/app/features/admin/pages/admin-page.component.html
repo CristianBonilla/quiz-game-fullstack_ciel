@@ -43,12 +43,19 @@
             <i class="pi pi-times-circle admin-page__status-icon admin-page__status-icon--inactive" pTooltip="Inactivo" tooltipPosition="top" aria-label="Inactivo"></i>
           }
         </td>
-        <td class="admin-page__actions" [class.admin-page__actions--single]="!category.isActive">
-          <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" size="small" pTooltip="Editar" tooltipPosition="top" (onClick)="openEditCategory(category)" />
-          @if (category.isActive) {
-            <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" size="small" pTooltip="Desactivar" tooltipPosition="top" (onClick)="confirmDeactivateCategory(category)" />
-          }
+        <td class="admin-page__actions-column">
+          <div class="admin-page__actions" [class.admin-page__actions--single]="!category.isActive">
+            <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" size="small" pTooltip="Editar" tooltipPosition="top" (onClick)="openEditCategory(category)" />
+            @if (category.isActive) {
+              <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" size="small" pTooltip="Desactivar" tooltipPosition="top" (onClick)="confirmDeactivateCategory(category)" />
+            }
+          </div>
         </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr>
+        <td colspan="6" class="admin-page__empty-message">No existen categorías registradas disponibles.</td>
       </tr>
     </ng-template>
   </p-table>
@@ -85,12 +92,19 @@
               <i class="pi pi-times-circle admin-page__status-icon admin-page__status-icon--inactive" pTooltip="Inactivo" tooltipPosition="top" aria-label="Inactivo"></i>
             }
           </td>
-          <td class="admin-page__actions" [class.admin-page__actions--single]="!question.isActive">
-            <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" size="small" pTooltip="Editar" tooltipPosition="top" (onClick)="openEditQuestion(question)" />
-            @if (question.isActive) {
-              <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" size="small" pTooltip="Desactivar" tooltipPosition="top" (onClick)="confirmDeactivateQuestion(question)" />
-            }
+          <td class="admin-page__actions-column">
+            <div class="admin-page__actions" [class.admin-page__actions--single]="!question.isActive">
+              <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" size="small" pTooltip="Editar" tooltipPosition="top" (onClick)="openEditQuestion(question)" />
+              @if (question.isActive) {
+                <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" size="small" pTooltip="Desactivar" tooltipPosition="top" (onClick)="confirmDeactivateQuestion(question)" />
+              }
+            </div>
           </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        <tr>
+          <td colspan="3" class="admin-page__empty-message">No existen preguntas registradas para esta categoría.</td>
         </tr>
       </ng-template>
     </p-table>
@@ -102,15 +116,16 @@
   [visible]="categoryDialog() !== null"
   (visibleChange)="!$event && categoryDialog.set(null)"
   [modal]="true"
+  [draggable]="false"
   [style]="{ width: '28rem' }"
   [contentStyle]="{ overflow: 'visible' }"
 >
-  <form [formGroup]="categoryForm" (ngSubmit)="onSubmitCategory()" class="dialog-form">
+  <form [formGroup]="categoryForm" (ngSubmit)="onSubmitCategory()" class="dialog-form" autocomplete="off" spellcheck="false">
     <label for="categoryName">Nombre</label>
-    <input id="categoryName" type="text" pInputText formControlName="name" />
+    <input id="categoryName" type="text" pInputText formControlName="name" autocomplete="off" spellcheck="false" />
 
     <label for="categoryDescription">Descripción</label>
-    <input id="categoryDescription" type="text" pInputText formControlName="description" />
+    <input id="categoryDescription" type="text" pInputText formControlName="description" autocomplete="off" spellcheck="false" />
 
     <label for="categoryDifficulty">Dificultad</label>
     <p-select
@@ -119,6 +134,7 @@
       optionLabel="label"
       optionValue="value"
       formControlName="difficultyLevel"
+      placeholder="Selecciona una dificultad"
       appendTo="body"
       scrollHeight="280px"
     />
@@ -132,6 +148,7 @@
       locale="es-CO"
       [minFractionDigits]="0"
       [min]="0"
+      autocomplete="off"
     />
 
     @if (categoryForm.invalid && categoryForm.touched) {
@@ -147,11 +164,12 @@
   [visible]="questionDialog() !== null"
   (visibleChange)="!$event && questionDialog.set(null)"
   [modal]="true"
+  [draggable]="false"
   [style]="{ width: '32rem' }"
 >
-  <form [formGroup]="questionForm" (ngSubmit)="onSubmitQuestion()" class="dialog-form">
+  <form [formGroup]="questionForm" (ngSubmit)="onSubmitQuestion()" class="dialog-form" autocomplete="off" spellcheck="false">
     <label for="questionText">Enunciado</label>
-    <input id="questionText" type="text" pInputText formControlName="text" />
+    <input id="questionText" type="text" pInputText formControlName="text" autocomplete="off" spellcheck="false" />
 
     <fieldset class="dialog-form__answers">
       <legend>Respuestas (selecciona la correcta)</legend>
@@ -163,6 +181,8 @@
             pInputText
             [formControl]="answer.controls.text"
             [placeholder]="'Respuesta ' + ($index + 1)"
+            autocomplete="off"
+            spellcheck="false"
           />
         </div>
       }

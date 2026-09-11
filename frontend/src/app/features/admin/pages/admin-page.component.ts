@@ -59,8 +59,8 @@ export class AdminPageComponent {
   protected readonly categoryForm = this.formBuilder.group({
     name: this.formBuilder.control('', [Validators.required, Validators.maxLength(100)]),
     description: this.formBuilder.control('', [Validators.required, Validators.maxLength(500)]),
-    difficultyLevel: this.formBuilder.control<DifficultyLevel>(1, [Validators.required]),
-    prizeAmount: this.formBuilder.control(0, [Validators.required, Validators.min(0)])
+    difficultyLevel: this.formBuilder.control<DifficultyLevel | null>(null, [Validators.required]),
+    prizeAmount: this.formBuilder.control<number | null>(null, [Validators.required, Validators.min(0)])
   });
 
   protected readonly questionForm = this.formBuilder.group({
@@ -90,7 +90,7 @@ export class AdminPageComponent {
   }
 
   protected openCreateCategory(): void {
-    this.categoryForm.reset({ name: '', description: '', difficultyLevel: 1, prizeAmount: 0 });
+    this.categoryForm.reset({ name: '', description: '', difficultyLevel: null, prizeAmount: null });
     this.categoryDialog.set({ kind: 'create' });
   }
 
@@ -110,7 +110,13 @@ export class AdminPageComponent {
       return;
     }
 
-    const value = this.categoryForm.getRawValue();
+    const raw = this.categoryForm.getRawValue();
+    const value = {
+      name: raw.name,
+      description: raw.description,
+      difficultyLevel: raw.difficultyLevel as DifficultyLevel,
+      prizeAmount: raw.prizeAmount ?? 0
+    };
     const mode = this.categoryDialog();
 
     if (mode?.kind === 'edit') {
@@ -172,6 +178,7 @@ export class AdminPageComponent {
       await this.questionStore.update(mode.question.id, value);
     } else if (categoryId !== null) {
       await this.questionStore.create({ categoryId, ...value });
+      await this.categoryStore.load(false);
     }
 
     if (this.questionStore.error() === null) {
