@@ -14,10 +14,10 @@ export const confirmExitGuard: CanDeactivateFn<unknown> = (): boolean | Promise<
 
   return new Promise<boolean>((resolve) => {
     confirmation.confirm({
-      header: 'Leave the game?',
-      message: 'You can withdraw now and keep the prize you have accumulated, or stay and keep playing.',
-      acceptLabel: 'Withdraw and keep the prize',
-      rejectLabel: 'Keep playing',
+      header: 'Salir del juego?',
+      message: 'Puedes retirarte ahora y conservar el premio que has acumulado, o quedarte y seguir jugando.',
+      acceptLabel: 'Retirarse y conservar el premio',
+      rejectLabel: 'Seguir jugando',
       accept: () => {
         void store.withdraw().then(() => resolve(store.error() === null));
       },
