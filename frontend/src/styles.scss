@@ -23,6 +23,57 @@ html.app-dark {
   --p-content-border-color: var(--p-surface-700);
 }
 
+// When navigating to results-page, suppress the old game view during the view transition
+html.transition-to-results::view-transition-old(root) {
+  display: none !important;
+  opacity: 0 !important;
+  animation: none !important;
+}
+
+html.transition-to-results::view-transition-new(root) {
+  opacity: 1 !important;
+  animation: none !important;
+}
+
+// Form validation: apply red border only to interacted (touched or dirty) invalid controls
+.ng-invalid.ng-touched,
+.ng-invalid.ng-dirty {
+  &.p-inputtext {
+    border-color: var(--p-red-500, #ef4444) !important;
+  }
+}
+
+input.p-inputtext.ng-invalid.ng-touched,
+input.p-inputtext.ng-invalid.ng-dirty {
+  border-color: var(--p-red-500, #ef4444) !important;
+}
+
+p-select.ng-invalid.ng-touched .p-select,
+p-select.ng-invalid.ng-dirty .p-select,
+.p-select.ng-invalid.ng-touched,
+.p-select.ng-invalid.ng-dirty,
+p-select.ng-invalid.ng-touched,
+p-select.ng-invalid.ng-dirty {
+  border-color: var(--p-red-500, #ef4444) !important;
+}
+
+p-inputnumber.ng-invalid.ng-touched input.p-inputtext,
+p-inputnumber.ng-invalid.ng-dirty input.p-inputtext,
+p-inputnumber.ng-invalid.ng-touched input,
+p-inputnumber.ng-invalid.ng-dirty input {
+  border-color: var(--p-red-500, #ef4444) !important;
+}
+
+input.p-inputtext.ng-invalid.ng-touched:focus,
+input.p-inputtext.ng-invalid.ng-dirty:focus,
+p-select.ng-invalid.ng-touched .p-select:focus,
+p-select.ng-invalid.ng-dirty .p-select:focus,
+p-inputnumber.ng-invalid.ng-touched input:focus,
+p-inputnumber.ng-invalid.ng-dirty input:focus {
+  border-color: var(--p-red-500, #ef4444) !important;
+  box-shadow: 0 0 0 1px var(--p-red-500, #ef4444) !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
