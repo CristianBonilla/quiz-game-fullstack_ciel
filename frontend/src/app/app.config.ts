@@ -29,7 +29,22 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     // Zoneless: SignalR callbacks arrive outside Angular's zone; signals notify the framework directly without NgZone.run.
     provideZonelessChangeDetection(),
-    provideRouter(routes, withComponentInputBinding(), withViewTransitions()),
+    provideRouter(
+      routes,
+      withComponentInputBinding(),
+      withViewTransitions({
+        onViewTransitionCreated: ({ transition, to }) => {
+          const isToResults =
+            to.routeConfig?.path?.includes('results') || to.parent?.routeConfig?.path?.includes('results');
+          if (isToResults) {
+            document.documentElement.classList.add('transition-to-results');
+            void transition.finished.finally(() => {
+              document.documentElement.classList.remove('transition-to-results');
+            });
+          }
+        }
+      })
+    ),
     provideHttpClient(
       withInterceptors([correlationIdInterceptor, loadingInterceptor, errorInterceptor]),
       withFetch()

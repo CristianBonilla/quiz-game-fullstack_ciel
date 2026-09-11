@@ -12,7 +12,10 @@
       <dd>{{ formatPrize(result.finalPrize) }}</dd>
     </dl>
 
-    <p-button label="Jugar de nuevo" routerLink="/setup" />
+    <div class="results-page__actions">
+      <p-button label="Jugar de nuevo" icon="pi pi-replay" [loading]="isRestarting()" (onClick)="onPlayAgain()" />
+      <p-button label="Volver al inicio" icon="pi pi-home" severity="secondary" [outlined]="true" routerLink="/setup" />
+    </div>
   </p-card>
 } @else {
   <p-skeleton height="12rem" />
