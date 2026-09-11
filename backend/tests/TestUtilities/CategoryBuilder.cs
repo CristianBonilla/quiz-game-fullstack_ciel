@@ -13,6 +13,7 @@ public sealed class CategoryBuilder
     private decimal _prizeAmount = 100m;
     private int _questionCount;
     private bool _activated;
+    private bool _deactivated;
 
     public static CategoryBuilder ACategory() => new();
 
@@ -49,6 +50,14 @@ public sealed class CategoryBuilder
     public CategoryBuilder Activated()
     {
         _activated = true;
+        _deactivated = false;
+        return this;
+    }
+
+    public CategoryBuilder Deactivated()
+    {
+        _deactivated = true;
+        _activated = false;
         return this;
     }
 
@@ -67,7 +76,11 @@ public sealed class CategoryBuilder
             category.AddQuestion(question);
         }
 
-        if (_activated)
+        if (_deactivated)
+        {
+            category.Deactivate();
+        }
+        else if (_activated && !category.IsActive)
         {
             category.Activate();
         }

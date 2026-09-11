@@ -24,7 +24,7 @@ public sealed class Category : AggregateRoot<Guid>
         Description = description;
         DifficultyLevel = difficultyLevel;
         PrizeAmount = prizeAmount;
-        IsActive = false;
+        IsActive = true;
     }
 
     private Category()

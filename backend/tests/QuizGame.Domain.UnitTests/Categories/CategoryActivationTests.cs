@@ -10,7 +10,7 @@ public sealed class CategoryActivationTests
     public void Activate_Should_ReturnFailure_When_FewerThanFiveActiveQuestionsExist()
     {
         // Arrange
-        Category category = CategoryBuilder.ACategory().WithQuestions(4).Build();
+        Category category = CategoryBuilder.ACategory().WithQuestions(4).Deactivated().Build();
 
         // Act
         Result result = category.Activate();
@@ -24,7 +24,7 @@ public sealed class CategoryActivationTests
     public void Activate_Should_ReturnSuccess_When_AtLeastFiveActiveQuestionsExist()
     {
         // Arrange
-        Category category = CategoryBuilder.ACategory().WithQuestions(5).Build();
+        Category category = CategoryBuilder.ACategory().WithQuestions(5).Deactivated().Build();
 
         // Act
         Result result = category.Activate();

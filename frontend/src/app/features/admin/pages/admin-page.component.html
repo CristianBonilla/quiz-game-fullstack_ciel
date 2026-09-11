@@ -97,7 +97,14 @@
   }
 </section>
 
-<p-dialog header="Categoría" [visible]="categoryDialog() !== null" (visibleChange)="!$event && categoryDialog.set(null)" [modal]="true">
+<p-dialog
+  header="Categoría"
+  [visible]="categoryDialog() !== null"
+  (visibleChange)="!$event && categoryDialog.set(null)"
+  [modal]="true"
+  [style]="{ width: '28rem' }"
+  [contentStyle]="{ overflow: 'visible' }"
+>
   <form [formGroup]="categoryForm" (ngSubmit)="onSubmitCategory()" class="dialog-form">
     <label for="categoryName">Nombre</label>
     <input id="categoryName" type="text" pInputText formControlName="name" />
@@ -112,6 +119,8 @@
       optionLabel="label"
       optionValue="value"
       formControlName="difficultyLevel"
+      appendTo="body"
+      scrollHeight="280px"
     />
 
     <label for="categoryPrize">Premio</label>
@@ -133,7 +142,13 @@
   </form>
 </p-dialog>
 
-<p-dialog header="Pregunta" [visible]="questionDialog() !== null" (visibleChange)="!$event && questionDialog.set(null)" [modal]="true">
+<p-dialog
+  header="Pregunta"
+  [visible]="questionDialog() !== null"
+  (visibleChange)="!$event && questionDialog.set(null)"
+  [modal]="true"
+  [style]="{ width: '32rem' }"
+>
   <form [formGroup]="questionForm" (ngSubmit)="onSubmitQuestion()" class="dialog-form">
     <label for="questionText">Enunciado</label>
     <input id="questionText" type="text" pInputText formControlName="text" />

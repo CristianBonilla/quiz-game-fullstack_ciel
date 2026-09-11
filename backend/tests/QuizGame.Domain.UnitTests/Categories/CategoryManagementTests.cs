@@ -158,10 +158,26 @@ public sealed class CategoryManagementTests
     }
 
     [Fact]
+    public void Create_Should_SetIsActiveToTrue_ByDefault()
+    {
+        // Arrange & Act
+        Result<Category> result = Category.Create(
+            Guid.NewGuid(),
+            "History",
+            "History questions",
+            DifficultyLevel.Create(1).Value,
+            Prize.Create(100m).Value);
+
+        // Assert
+        result.IsSuccess.ShouldBeTrue();
+        result.Value.IsActive.ShouldBeTrue();
+    }
+
+    [Fact]
     public void Deactivate_Should_ReturnFailure_When_CategoryIsAlreadyInactive()
     {
         // Arrange
-        Category category = CategoryBuilder.ACategory().Build();
+        Category category = CategoryBuilder.ACategory().Deactivated().Build();
 
         // Act
         Result result = category.Deactivate();
