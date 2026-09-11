@@ -23,9 +23,18 @@ export class SignalrConnectionService {
       .configureLogging(isDevMode() ? LogLevel.Information : LogLevel.Warning)
       .build();
 
-    connection.onreconnecting(() => this.state.set('reconnecting'));
-    connection.onreconnected(() => this.state.set('connected'));
-    connection.onclose(() => this.state.set('disconnected'));
+    connection.onreconnecting((error) => {
+      console.warn('[SignalR Hub] Connection interrupted. Reconnecting...', error ?? '');
+      this.state.set('reconnecting');
+    });
+    connection.onreconnected((connectionId) => {
+      console.log(`[SignalR Hub] Reconnected successfully. Connection ID: ${connectionId ?? 'unknown'}`);
+      this.state.set('connected');
+    });
+    connection.onclose((error) => {
+      console.log('[SignalR Hub] Connection closed.', error ? error.message : '');
+      this.state.set('disconnected');
+    });
 
     this.connection = connection;
     return connection;
@@ -41,8 +50,10 @@ export class SignalrConnectionService {
 
     try {
       await connection.start();
+      console.log(`[SignalR Hub] Connected to ${this.config.hubUrl}/game (Connection ID: ${connection.connectionId ?? 'unknown'})`);
       this.state.set('connected');
     } catch (error) {
+      console.error('[SignalR Hub] Connection failed to start:', error);
       this.state.set('disconnected');
       throw error;
     }

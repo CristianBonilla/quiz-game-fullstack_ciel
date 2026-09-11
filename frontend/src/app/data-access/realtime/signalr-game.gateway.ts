@@ -41,31 +41,41 @@ export class SignalrGameGateway implements GameGateway {
 
   async joinGame(gameId: string): Promise<Game> {
     this.registerHandlers();
+    console.log(`[SignalR Hub] Joining game: ${gameId}`);
     const response = await this.connection.invoke<HubResponseDto<GameStateDto>>(HUB_METHODS.joinGame, gameId);
+    const game = toGame(this.unwrap(response));
+    console.log(`[SignalR Hub] Successfully joined game ${game.id} (Status: ${game.status}, Round: ${game.currentRound})`);
 
-    return toGame(this.unwrap(response));
+    return game;
   }
 
   async leaveGame(gameId: string): Promise<void> {
+    console.log(`[SignalR Hub] Leaving game: ${gameId}`);
     await this.connection.invoke<void>(HUB_METHODS.leaveGame, gameId);
   }
 
   async submitAnswer(request: SubmitAnswerRequest): Promise<AnswerEvaluation> {
+    console.log(`[SignalR Hub] Submitting answer ${request.answerId} for game ${request.gameId}`);
     const response = await this.connection.invoke<HubResponseDto<AnswerQuestionDto>>(
       HUB_METHODS.submitAnswer,
       toSubmitAnswerRequestDto(request)
     );
+    const evaluation = toAnswerEvaluation(this.unwrap(response));
+    console.log(`[SignalR Hub] Answer evaluated: ${evaluation.isCorrect ? 'CORRECT' : 'INCORRECT'} - GameStatus is now: ${evaluation.status}`);
 
-    return toAnswerEvaluation(this.unwrap(response));
+    return evaluation;
   }
 
   async withdraw(request: WithdrawRequest): Promise<GameSummary> {
+    console.log(`[SignalR Hub] Requesting withdrawal for game ${request.gameId}`);
     const response = await this.connection.invoke<HubResponseDto<GameSummaryDto>>(
       HUB_METHODS.withdraw,
       toWithdrawRequestDto(request)
     );
+    const summary = toGameSummary(this.unwrap(response));
+    console.log(`[SignalR Hub] Game finished by withdrawal: Final status ${summary.status}, Prize: ${summary.finalPrize}`);
 
-    return toGameSummary(this.unwrap(response));
+    return summary;
   }
 
   onEvent(handler: (event: GameEvent) => void): Unsubscribe {
@@ -108,9 +118,38 @@ export class SignalrGameGateway implements GameGateway {
       const event = map(payload);
 
       if (this.deduplicator.shouldProcess(gameEventIdentity(event))) {
+        this.logEvent(event);
         this.events.next(event);
       }
     });
+  }
+
+  private logEvent(event: GameEvent): void {
+    switch (event.type) {
+      case 'GameStarted':
+        console.log(`[SignalR Hub] Event received: GameStarted - Game: ${event.gameId}, Player: '${event.playerName}', GameStatus: InProgress`);
+        break;
+      case 'RoundStarted':
+        console.log(`[SignalR Hub] Event received: RoundStarted - Game: ${event.gameId}, Round: ${event.roundNumber}, Prize at stake: ${event.prizeAtStake}`);
+        break;
+      case 'AnswerEvaluated':
+        console.log(`[SignalR Hub] Event received: AnswerEvaluated - Game: ${event.gameId}, Result: ${event.isCorrect ? 'CORRECT' : 'INCORRECT'}, GameStatus is now ${event.status}, Accumulated prize: ${event.accumulatedPrize}`);
+        break;
+      case 'RoundAdvanced':
+        console.log(`[SignalR Hub] Event received: RoundAdvanced - Game: ${event.gameId}, Advanced from round ${event.previousRoundNumber} to ${event.currentRoundNumber}, Accumulated prize: ${event.accumulatedPrize}`);
+        break;
+      case 'PrizeAccumulated':
+        console.log(`[SignalR Hub] Event received: PrizeAccumulated - Game: ${event.gameId}, Round ${event.roundNumber}, Prize won: ${event.prizeWon}, Total: ${event.accumulatedPrize}`);
+        break;
+      case 'GameEnded':
+        console.log(`[SignalR Hub] Event received: GameEnded - Game: ${event.gameId}, Player: '${event.playerName}', Final GameStatus: ${event.status}, Final prize: ${event.finalPrize}`);
+        break;
+      case 'TimeRemaining':
+        if (event.secondsRemaining <= 5 || event.secondsRemaining % 5 === 0) {
+          console.log(`[SignalR Hub] Event received: TimeRemaining - Game: ${event.gameId}, Round: ${event.roundNumber}, ${event.secondsRemaining}s left`);
+        }
+        break;
+    }
   }
 
   private unwrap<T>(response: HubResponseDto<T>): T {

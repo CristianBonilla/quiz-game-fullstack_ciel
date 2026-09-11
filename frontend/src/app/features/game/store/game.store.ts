@@ -7,6 +7,7 @@ import { AppError, toAppError } from '@domain/models/app-error';
 import { Game } from '@domain/models/game';
 import { GameEvent } from '@domain/models/game-event';
 import { GameSettings } from '@domain/models/game-settings';
+import { GameStatus } from '@domain/enums/game-status';
 import {
   canWithdraw as canPlayerWithdraw,
   isFinalRound as isFinalRoundRule,
@@ -293,6 +294,16 @@ export const GameStore = signalStore(
         }
 
         previousConnectionState = currentConnectionState;
+      });
+
+      let previousStatus: GameStatus | null = null;
+      effect(() => {
+        const game = store.game();
+        const currentStatus = game?.status ?? null;
+        if (currentStatus !== null && currentStatus !== previousStatus) {
+          console.log(`[GameStatus] Transitioned from '${previousStatus ?? 'None'}' to '${currentStatus}' (Game ID: ${game?.id})`);
+          previousStatus = currentStatus;
+        }
       });
 
       const unsubscribe = gateway.onEvent((event) => store.applyEvent(event));
