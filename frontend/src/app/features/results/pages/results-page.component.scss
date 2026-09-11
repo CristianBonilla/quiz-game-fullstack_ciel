@@ -1,0 +1,21 @@
+.results-page__message {
+  margin: 0.75rem 0;
+  color: var(--p-text-muted-color);
+}
+
+.results-page__stats {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 1rem;
+  margin: 1rem 0;
+}
+
+.results-page__stats dt {
+  color: var(--p-text-muted-color);
+}
+
+.results-page__stats dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--p-text-color);
+}

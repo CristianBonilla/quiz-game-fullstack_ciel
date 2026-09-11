@@ -1,0 +1,19 @@
+@if (loadError(); as error) {
+  <p-message severity="error" [text]="error" />
+} @else if (summary(); as result) {
+  <p-card [header]="'Resultado: ' + result.playerName">
+    <p-tag [value]="result.status | gameStatusLabel" />
+    <p class="results-page__message">{{ messageFor(result) }}</p>
+
+    <dl class="results-page__stats">
+      <dt>Rondas jugadas</dt>
+      <dd>{{ result.roundsPlayed }}</dd>
+      <dt>Acumulado final</dt>
+      <dd>{{ formatPrize(result.finalPrize) }}</dd>
+    </dl>
+
+    <p-button label="Jugar de nuevo" routerLink="/setup" />
+  </p-card>
+} @else {
+  <p-skeleton height="12rem" />
+}
