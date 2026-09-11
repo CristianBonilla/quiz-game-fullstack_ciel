@@ -5,6 +5,7 @@ services:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
       MSSQL_PID: Developer
+    container_name: quiz-game-db
     volumes:
       - quiz-game-db-data:/var/opt/mssql
       - ./scripts/database:/scripts/database:ro
@@ -22,6 +23,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    container_name: quiz-game-backend
     depends_on:
       quiz-game-db:
         condition: service_healthy
@@ -37,6 +39,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    container_name: quiz-game-frontend
     depends_on:
       - quiz-game-backend
     ports:
