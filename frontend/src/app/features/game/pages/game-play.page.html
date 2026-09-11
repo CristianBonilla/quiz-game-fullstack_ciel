@@ -1,0 +1,39 @@
+<div class="game-play">
+  <header class="game-play__bar">
+    <app-round-progress [currentRound]="store.game()?.currentRound ?? 0" [totalRounds]="totalRounds()" />
+    <app-countdown-bar [secondsRemaining]="store.timeRemaining()" [totalSeconds]="questionTimeLimit()" />
+    <app-prize-display [amount]="store.accumulatedPrize()" />
+  </header>
+
+  <app-connection-status [state]="connectionState()" />
+
+  @if (feedback(); as active) {
+    <div class="game-play__stage" #stage tabindex="-1">
+      <app-question-card
+        [questionText]="active.snapshot.text"
+        [answers]="active.snapshot.answers"
+        [disabled]="true"
+        [feedback]="active.evaluation"
+      />
+    </div>
+  } @else {
+    <div
+      class="game-play__stage"
+      #stage
+      tabindex="-1"
+      [@slideQuestion]="{ value: store.game()?.currentRound ?? 0, params: slideParams() }"
+    >
+      @for (question of currentQuestions(); track question.id) {
+        <app-question-card
+          [questionText]="question.text"
+          [answers]="question.answers"
+          (answerSelected)="onAnswerSelected($event)"
+        />
+      }
+    </div>
+  }
+
+  <footer class="game-play__footer">
+    <app-withdraw-button [disabled]="!store.canWithdraw()" (withdraw)="onWithdrawClick()" />
+  </footer>
+</div>

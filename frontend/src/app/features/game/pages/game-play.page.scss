@@ -1,0 +1,26 @@
+.game-play {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.game-play__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.game-play__stage {
+  position: relative;
+  min-height: 16rem;
+}
+
+.game-play__stage:focus-visible {
+  outline: none;
+}
+
+.game-play__footer {
+  display: flex;
+  justify-content: center;
+}
