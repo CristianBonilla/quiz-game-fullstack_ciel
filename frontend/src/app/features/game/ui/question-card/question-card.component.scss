@@ -1,0 +1,22 @@
+.question-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--p-content-border-color);
+  background: var(--p-content-background);
+}
+
+.question-card__text {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--p-text-color);
+}
+
+.question-card__answers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}

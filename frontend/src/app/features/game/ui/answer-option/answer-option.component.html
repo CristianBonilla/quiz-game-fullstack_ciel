@@ -1,0 +1,22 @@
+<button
+  type="button"
+  class="answer-option"
+  [class.selected]="selected()"
+  [class.correct]="state() === 'correct'"
+  [class.incorrect]="state() === 'incorrect'"
+  [disabled]="disabled()"
+  [attr.aria-pressed]="selected()"
+  [appNumberKey]="index()"
+  (numberKeyPressed)="onNumberKey()"
+  (click)="chosen.emit()"
+>
+  <span class="answer-option__index">{{ index() }}</span>
+  <span class="answer-option__text">{{ text() }}</span>
+  @if (state() === 'correct') {
+    <i class="pi pi-check answer-option__icon" aria-hidden="true"></i>
+    <span class="sr-only">Respuesta correcta</span>
+  } @else if (state() === 'incorrect') {
+    <i class="pi pi-times answer-option__icon" aria-hidden="true"></i>
+    <span class="sr-only">Respuesta incorrecta</span>
+  }
+</button>

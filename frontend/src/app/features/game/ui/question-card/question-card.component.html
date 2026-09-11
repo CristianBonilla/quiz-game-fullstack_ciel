@@ -1,0 +1,16 @@
+<section class="question-card" aria-live="polite">
+  <p class="question-card__text">{{ questionText() }}</p>
+  <div class="question-card__answers" [@staggerAnswers]="staggerKey()">
+    @for (answer of answers(); track answer.id) {
+      <app-answer-option
+        class="answer-option"
+        [text]="answer.text"
+        [index]="answer.index"
+        [disabled]="disabled()"
+        [selected]="isSelected(answer.id)"
+        [state]="stateFor(answer.id)"
+        (chosen)="answerSelected.emit(answer.id)"
+      />
+    }
+  </div>
+</section>
