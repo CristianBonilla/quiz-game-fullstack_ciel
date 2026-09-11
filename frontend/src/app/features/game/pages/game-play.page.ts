@@ -56,6 +56,12 @@ export class GamePlayPage {
 
   protected readonly totalRounds = computed(() => this.store.settings()?.totalRounds ?? this.store.game()?.totalRounds ?? 0);
   protected readonly questionTimeLimit = computed(() => this.store.settings()?.questionTimeLimitSeconds ?? 30);
+  protected readonly secondsRemaining = computed(() => {
+    if (this.store.isGameOver()) {
+      return 0;
+    }
+    return this.store.timeRemaining() ?? this.questionTimeLimit();
+  });
 
   protected readonly currentQuestions = computed<readonly QuestionSnapshot[]>(() => {
     const question = this.store.currentQuestion();

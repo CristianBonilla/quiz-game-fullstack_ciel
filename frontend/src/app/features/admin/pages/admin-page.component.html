@@ -38,14 +38,16 @@
         <td>{{ category.questionCount }}</td>
         <td class="admin-page__status-column">
           @if (category.isActive) {
-            <i class="pi pi-check-circle admin-page__status-icon admin-page__status-icon--active" pTooltip="Activa" tooltipPosition="top" aria-label="Activa"></i>
+            <i class="pi pi-check-circle admin-page__status-icon admin-page__status-icon--active" pTooltip="Activo" tooltipPosition="top" aria-label="Activo"></i>
           } @else {
-            <i class="pi pi-times-circle admin-page__status-icon admin-page__status-icon--inactive" pTooltip="Inactiva" tooltipPosition="top" aria-label="Inactiva"></i>
+            <i class="pi pi-times-circle admin-page__status-icon admin-page__status-icon--inactive" pTooltip="Inactivo" tooltipPosition="top" aria-label="Inactivo"></i>
           }
         </td>
-        <td class="admin-page__actions">
+        <td class="admin-page__actions" [class.admin-page__actions--single]="!category.isActive">
           <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" size="small" pTooltip="Editar" tooltipPosition="top" (onClick)="openEditCategory(category)" />
-          <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" size="small" [disabled]="!category.isActive" pTooltip="Desactivar" tooltipPosition="top" (onClick)="confirmDeactivateCategory(category)" />
+          @if (category.isActive) {
+            <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" size="small" pTooltip="Desactivar" tooltipPosition="top" (onClick)="confirmDeactivateCategory(category)" />
+          }
         </td>
       </tr>
     </ng-template>
@@ -78,14 +80,16 @@
           <td>{{ question.text }}</td>
           <td class="admin-page__status-column">
             @if (question.isActive) {
-              <i class="pi pi-check-circle admin-page__status-icon admin-page__status-icon--active" pTooltip="Activa" tooltipPosition="top" aria-label="Activa"></i>
+              <i class="pi pi-check-circle admin-page__status-icon admin-page__status-icon--active" pTooltip="Activo" tooltipPosition="top" aria-label="Activo"></i>
             } @else {
-              <i class="pi pi-times-circle admin-page__status-icon admin-page__status-icon--inactive" pTooltip="Inactiva" tooltipPosition="top" aria-label="Inactiva"></i>
+              <i class="pi pi-times-circle admin-page__status-icon admin-page__status-icon--inactive" pTooltip="Inactivo" tooltipPosition="top" aria-label="Inactivo"></i>
             }
           </td>
-          <td class="admin-page__actions">
+          <td class="admin-page__actions" [class.admin-page__actions--single]="!question.isActive">
             <p-button icon="pi pi-pencil" [rounded]="true" [outlined]="true" size="small" pTooltip="Editar" tooltipPosition="top" (onClick)="openEditQuestion(question)" />
-            <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" size="small" [disabled]="!question.isActive" pTooltip="Desactivar" tooltipPosition="top" (onClick)="confirmDeactivateQuestion(question)" />
+            @if (question.isActive) {
+              <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" size="small" pTooltip="Desactivar" tooltipPosition="top" (onClick)="confirmDeactivateQuestion(question)" />
+            }
           </td>
         </tr>
       </ng-template>

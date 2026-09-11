@@ -52,4 +52,30 @@ describe('CountdownBarComponent', () => {
     // Assert
     expect(bar.getAttribute('aria-label')).toBe('Tiempo restante: 12 segundos');
   });
+
+  it('should display total seconds when remaining is null (initial state)', () => {
+    // Arrange
+    fixture.componentRef.setInput('secondsRemaining', null);
+
+    // Act
+    fixture.detectChanges();
+    const text: HTMLElement = fixture.nativeElement.querySelector('.countdown-bar__seconds');
+
+    // Assert
+    expect(text.textContent?.trim()).toBe('30s');
+  });
+
+  it('should display 0s and not be critical when game finishes with 0 seconds remaining', () => {
+    // Arrange
+    fixture.componentRef.setInput('secondsRemaining', 0);
+
+    // Act
+    fixture.detectChanges();
+    const bar: HTMLElement = fixture.nativeElement.querySelector('p-progressbar');
+    const text: HTMLElement = fixture.nativeElement.querySelector('.countdown-bar__seconds');
+
+    // Assert
+    expect(text.textContent?.trim()).toBe('0s');
+    expect(bar.getAttribute('data-critical')).toBe('false');
+  });
 });

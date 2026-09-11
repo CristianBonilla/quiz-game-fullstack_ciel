@@ -22,7 +22,11 @@
 }
 
 .admin-page__status-icon {
-  font-size: 1.125rem;
+  font-size: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
 }
 
 .admin-page__status-icon--active {
@@ -30,17 +34,23 @@
 }
 
 .admin-page__status-icon--inactive {
-  color: var(--p-text-muted-color);
+  color: var(--p-red-500, #ef4444);
 }
 
 .admin-page__actions-column {
   width: 7rem;
+  text-align: center;
 }
 
 .admin-page__actions {
   display: flex;
   gap: 0.5rem;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-page__actions--single {
+  justify-content: center;
 }
 
 .link-button {

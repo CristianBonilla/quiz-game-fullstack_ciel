@@ -77,6 +77,6 @@ export class CountdownBarComponent {
 
   protected readonly isCritical = computed(() => {
     const remaining = this.secondsRemaining();
-    return remaining !== null && remaining <= CRITICAL_THRESHOLD_SECONDS;
+    return remaining !== null && remaining > 0 && remaining <= CRITICAL_THRESHOLD_SECONDS;
   });
 }

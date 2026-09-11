@@ -90,10 +90,11 @@ export const GameStore = signalStore(
 
       switch (event.type) {
         case 'GameStarted':
-          patchState(store, { timeRemaining: null });
+          patchState(store, { timeRemaining: store.settings()?.questionTimeLimitSeconds ?? 30 });
           break;
         case 'RoundStarted':
           patchState(store, {
+            timeRemaining: store.settings()?.questionTimeLimitSeconds ?? 30,
             game:
               current === null
                 ? null
@@ -143,11 +144,13 @@ export const GameStore = signalStore(
                     currentQuestion: null,
                     deadlineUtc: null
                   },
-            timeRemaining: null
+            timeRemaining: 0
           });
           break;
         case 'TimeRemaining':
-          patchState(store, { timeRemaining: event.secondsRemaining });
+          if (!store.isGameOver()) {
+            patchState(store, { timeRemaining: event.secondsRemaining });
+          }
           break;
       }
     }
@@ -176,7 +179,13 @@ export const GameStore = signalStore(
     }
 
     async function startGame(playerName: string): Promise<void> {
-      patchState(store, { status: 'loading', error: null, lastEvaluation: null, selectedAnswerId: null });
+      patchState(store, {
+        status: 'loading',
+        error: null,
+        lastEvaluation: null,
+        selectedAnswerId: null,
+        timeRemaining: store.settings()?.questionTimeLimitSeconds ?? 30
+      });
 
       try {
         const game = await repository.startGame({ playerName });
@@ -216,8 +225,10 @@ export const GameStore = signalStore(
           requestId: crypto.randomUUID()
         });
 
+        const isFinished = evaluation.status !== 'InProgress';
         patchState(store, {
           lastEvaluation: evaluation,
+          timeRemaining: isFinished ? 0 : store.timeRemaining(),
           status: 'ready',
           game: {
             ...game,
@@ -247,7 +258,7 @@ export const GameStore = signalStore(
 
         patchState(store, {
           status: 'ready',
-          timeRemaining: null,
+          timeRemaining: 0,
           game: {
             ...game,
             status: summary.status,

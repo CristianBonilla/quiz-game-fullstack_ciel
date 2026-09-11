@@ -64,7 +64,7 @@ public sealed partial class GameTimeoutService(
 
         foreach (OpenRound openRound in openRounds)
         {
-            int secondsRemaining = (int)Math.Max(0, (openRound.DeadlineUtc - now).TotalSeconds);
+            int secondsRemaining = (int)Math.Max(0, Math.Ceiling((openRound.DeadlineUtc - now).TotalSeconds));
 
             if (secondsRemaining > 0)
             {

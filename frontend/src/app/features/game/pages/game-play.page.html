@@ -1,7 +1,7 @@
 <div class="game-play">
   <header class="game-play__bar">
     <app-round-progress [currentRound]="store.game()?.currentRound ?? 0" [totalRounds]="totalRounds()" />
-    <app-countdown-bar [secondsRemaining]="store.timeRemaining()" [totalSeconds]="questionTimeLimit()" />
+    <app-countdown-bar [secondsRemaining]="secondsRemaining()" [totalSeconds]="questionTimeLimit()" />
     <app-prize-display [amount]="store.accumulatedPrize()" />
   </header>
 
